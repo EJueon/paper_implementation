@@ -73,20 +73,22 @@ class Seq2Seq(nn.Module):
         x, y = data
         
         _, h, c = self.encoder(x)
-        preds = torch.zeros_like(x)
         sub_x = None
         loss = 0
-        sub_x = x[:, 0:1, :]
-        for i in range(1, x.shape[1]):
-            pred, h, c = self.decoder(sub_x, h, c)
-            pred = pred.transpose(0,1) 
-            preds[:, i, :] = pred[0]
-            teacher_forcing = random.random() < teacher_forcing_ratio
-            
-            pred = pred.argmax(2)
-            pred = F.one_hot(pred, self.vocab_size).float()
 
-            sub_x = x[:, i:i+1, :] if teacher_forcing else pred
-            loss += self.loss_func(preds[:, i, :].to('cuda'), y[:, i])
-        loss = loss / x.shape[1]
-        return preds, loss
+        pred, h, c = self.decoder(x, h, c)
+        pred = pred.transpose(0,1) 
+        loss = self.loss_func(pred.to('cuda'), y)
+        
+        # for i in range(1, x.shape[1]):
+        #     pred, h, c = self.decoder(sub_x, h, c)
+        #     pred = pred.transpose(0,1) 
+        #     preds[:, i, :] = pred[0]
+        #     teacher_forcing = random.random() < teacher_forcing_ratio
+            
+        #     pred = pred.argmax(2)
+        #     pred = F.one_hot(pred, self.vocab_size).float()
+
+        #     sub_x = x[:, i:i+1, :] if teacher_forcing else pred
+        #     loss += self.loss_func(preds[:, i, :].to('cuda'), y[:, i])
+        return pred, loss
